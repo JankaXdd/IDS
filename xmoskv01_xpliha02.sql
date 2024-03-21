@@ -5,16 +5,18 @@ Autoři:
   - Petr Plíhal            (xpliha02)
 */
 
--- DROP pro všechny tabulky (v opačném pořadí od vytvoření, kvůli cizím klíčům)
-DROP TABLE ProvedenyVykon;
+-- DROP pro testování změn
+-- Při vytváření tabulek poprvé je třeba odmazat/zakomentovat/označit bez
 DROP TABLE PredepsanyLek;
+DROP TABLE ProvedenyVykon;
 DROP TABLE Vykon;
 DROP TABLE Lek;
 DROP TABLE Vysetreni;
 DROP TABLE Ockovani;
-DROP TABLE Pacient;
 DROP TABLE Faktura;
 DROP TABLE Navsteva;
+DROP TABLE Pacient;
+
 create table Pacient
 (
     rodneCislo number(10) check (mod(rodneCislo,11)=0) primary key,
