@@ -6,15 +6,15 @@ Autoři:
 */
 
 -- ** DROP pro testování změn
--- DROP TABLE PredepsanyLek;
--- DROP TABLE ProvedenyVykon;
--- DROP TABLE Vykon;
--- DROP TABLE Lek;
--- DROP TABLE Vysetreni;
--- DROP TABLE Ockovani;
--- DROP TABLE Faktura;
--- DROP TABLE Navsteva;
--- DROP TABLE Pacient;
+ DROP TABLE PredepsanyLek;
+ DROP TABLE ProvedenyVykon;
+ DROP TABLE Vykon;
+ DROP TABLE Lek;
+ DROP TABLE Vysetreni;
+ DROP TABLE Ockovani;
+ DROP TABLE Faktura;
+ DROP TABLE Navsteva;
+ DROP TABLE Pacient;
 
 create table Pacient
 (
@@ -101,8 +101,9 @@ create table PredepsanyLek
     idLeku int REFERENCES Lek(idLeku),
     primary key (idNavstevy, idLeku)
 );
-
--- Vkládání testovacích dat --
+-- ----------------------------------------------------------
+------------------ Vkládání testovacích dat -----------------
+-- ----------------------------------------------------------
 
 -- Pacienti
 INSERT INTO Pacient (rodneCislo, jmeno, prijmeni, datumNarozeni, ulice, mesto, psc, telefon, cisloPojistence) 
@@ -175,3 +176,54 @@ BEGIN
 
 END;
 /
+
+-- ----------------------------------------------------------
+----------------------- SELECT dotazy -----------------------
+-- ----------------------------------------------------------
+
+-- GROUP BY + agregační funkce 1x
+-- Nejčastěji předepsané léky
+SELECT idLeku AS ID_Leku, nazev AS Název_léku, COUNT(*) AS Počet_předepsání
+FROM Lek
+GROUP BY idLeku, nazev
+ORDER BY Počet_předepsání DESC;
+
+-- JOIN dvou(?) tabulek 1x
+-- IN s vnořeným SELECTem 1x
+-- Seznam pacientů, kteří nebyli na Preventivní prohlídce za (daný kalendářní) rok
+SELECT jmeno AS Jméno, prijmeni AS Příjmení
+FROM Pacient
+WHERE rodneCislo NOT IN (
+    SELECT rodneCislo
+    FROM Navsteva
+    JOIN Vysetreni ON Navsteva.idNavstevy = Vysetreni.idNavstevy
+    WHERE typ = 'Preventivní prohlídka' 
+        AND EXTRACT(YEAR FROM datum) = 1984
+);
+
+-- JOIN tří tabulek 1x
+-- EXISTS (s vnořeným SELECTem) 1x
+-- Jména pacientů, kterým byl někdy předepsán lék s učinnou látkou (Paracetamol)
+SELECT jmeno AS Jméno, prijmeni AS Příjmení
+FROM Pacient P
+WHERE EXISTS (
+    SELECT jmeno, prijmeni
+
+    FROM Navsteva N
+    JOIN Vysetreni V ON N.idNavstevy = V.idNavstevy
+    JOIN PredepsanyLek PL ON V.idNavstevy = PL.idNavstevy
+    JOIN Lek L ON PL.idLeku = L.idLeku
+
+    WHERE P.rodneCislo = N.rodneCislo 
+        AND L.ucinnaLatka = 'Paracetamol'
+);
+
+-- JOIN tří tabulek 1x
+-- GROUP BY + agregační funkce 1x
+-- Celkové výdělky za návštěvy pro jednotlivá města
+SELECT mesto AS Město, SUM(castka) AS Celkové_výdělky
+FROM Pacient P
+JOIN Navsteva N ON P.rodneCislo = N.rodneCislo
+JOIN Faktura F ON N.idNavstevy = F.idNavstevy
+GROUP BY mesto
+ORDER BY Celkové_výdělky DESC;
