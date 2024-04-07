@@ -119,8 +119,13 @@ VALUES (4907019997, 'Josef', 'Tlustej', TO_DATE('1949-07-02', 'YYYY-MM-DD'), NUL
 DECLARE -- Pomocné proměnné pro automaticky generované IDidNavstevy
     predchozi_idNavstevy1 INT;
     predchozi_idNavstevy2 INT;
+    predchozi_idNavstevy3 INT;
 BEGIN
     -- Návštěvy
+    INSERT INTO Navsteva (datum, cas, rodneCislo) 
+    VALUES (TO_DATE('1984-02-01', 'YYYY-MM-DD'), TO_DATE('14:50:22', 'HH24:MI:SS'), 6202229990)
+    RETURNING idNavstevy INTO predchozi_idNavstevy3;
+
     INSERT INTO Navsteva (datum, cas, rodneCislo) 
     VALUES (TO_DATE('1984-04-04', 'YYYY-MM-DD'), TO_DATE('17:25:05', 'HH24:MI:SS'), 6202229990)
     RETURNING idNavstevy INTO predchozi_idNavstevy2;
@@ -134,15 +139,18 @@ BEGIN
     VALUES (50.15, TO_DATE('1984-04-04', 'YYYY-MM-DD'), 'Očkování proti tetanu, hrazeno pojišťovnou', TO_DATE('1984-05-02', 'YYYY-MM-DD'), predchozi_idNavstevy1);
     INSERT INTO Faktura (castka, datumVystaveni, popis, datumSplatnosti, idNavstevy) 
     VALUES (80.12, TO_DATE('1982-02-15', 'YYYY-MM-DD'), 'Preventivní prohlídka', TO_DATE('1982-03-16', 'YYYY-MM-DD'), predchozi_idNavstevy2);
+    INSERT INTO Faktura (castka, datumVystaveni, popis, datumSplatnosti, idNavstevy) 
+    VALUES (30.22, TO_DATE('1984-02-01', 'YYYY-MM-DD'), 'Očkování proti klíšťové encefalitidě, hrazeno pojišťovnou', TO_DATE('1984-02-02', 'YYYY-MM-DD'), predchozi_idNavstevy3);
 
     -- Očkování
     INSERT INTO Ockovani (idNavstevy, typ, expirace) 
     VALUES (predchozi_idNavstevy1, 'Tdap', TO_DATE('1994-04-04', 'YYYY-MM-DD'));
+    INSERT INTO Ockovani (idNavstevy, typ, expirace) 
+    VALUES (predchozi_idNavstevy3, 'Inaktivovaná', TO_DATE('1984-08-01', 'YYYY-MM-DD'));
 
     -- Vyšetření
     INSERT INTO Vysetreni (idNavstevy, typ, planovaneVykony, zazadanaVysetreni, lekarskaZprava) 
     VALUES (predchozi_idNavstevy2, 'Preventivní prohlídka', 'Měření krevního tlaku, Měření tepové frekvence, Zvážení a změření výšky', 'EKG, Oční vyšetření', 'Pacientka je 76letá žena, podstupující preventivní prohlídku...');
-
 
     -- Léky
     INSERT INTO Lek (idLeku, typ, davkovani, nazev, ucinnaLatka) 
@@ -154,17 +162,18 @@ BEGIN
 
     -- Výkony
     INSERT INTO Vykon (idVykonu, nazevVykonu, popis) 
-    VALUES (1, 'Name', 'Krevní tlak se měří pomocí tlakoměru na paži. Výsledek se udává ve dvou hodnotách: systolický (horní) a diastolický (dolní) tlak.');
+    VALUES (1, 'Změření tlaku', 'Krevní tlak se měří pomocí tlakoměru na paži. Výsledek se udává ve dvou hodnotách: systolický (horní) a diastolický (dolní) tlak.');
     INSERT INTO Vykon (idVykonu, nazevVykonu, popis)
-    VALUES (2, 'Name', 'Tepová frekvence se měří pomocí stetoskopu nebo pulzního oxymetru. Normální tepová frekvence dospělého člověka je 60-100 úderů za minutu.');
+    VALUES (2, 'Změření tepu', 'Tepová frekvence se měří pomocí stetoskopu nebo pulzního oxymetru. Normální tepová frekvence dospělého člověka je 60-100 úderů za minutu.');
     INSERT INTO Vykon (idVykonu, nazevVykonu, popis)
-    VALUES (3, 'Name', 'Zvážení a změření výšky se provádí na váze a měřítku. Výsledek se udává v kilogramech a metrech.');
+    VALUES (3, 'Zvážení a změření výšky', 'Zvážení a změření výšky se provádí na váze a měřítku. Výsledek se udává v kilogramech a metrech.');
 
     -- Předepsané léky (Spojení Vyšetření a Lék)
     INSERT INTO PredepsanyLek (idNavstevy, idLeku) 
     VALUES ( predchozi_idNavstevy2 , 1);
     INSERT INTO PredepsanyLek (idNavstevy, idLeku) 
     VALUES ( predchozi_idNavstevy2 , 2);
+
 
     -- Provedené výkony (Spojení Vyšetření a Výkon)
     INSERT INTO ProvedenyVykon (idNavstevy, idVykonu) 
