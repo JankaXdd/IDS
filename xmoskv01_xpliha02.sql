@@ -190,14 +190,14 @@ END;
 ----------------------- SELECT dotazy -----------------------
 -- ----------------------------------------------------------
 
--- Poslední návštěva pacienta
+-- Poslední návštěva pacienta (pokud byl někdy na nějaké)
 -- JOIN dvou tabulek
 SELECT P.rodneCislo AS Rodné_číslo, jmeno AS Jméno, prijmeni AS Příjmení, MAX(datum) AS Datum_návštěvy
 FROM Pacient P
 JOIN Navsteva N ON P.rodneCislo = N.rodneCislo
 GROUP BY P.rodneCislo, jmeno, prijmeni;
 
--- Počet návštěv každého pacienta
+-- Počet návštěv pacienta (pokud byl někdy na nějaké)
 -- JOIN dvou tabulek
 SELECT P.rodneCislo AS Rodné_číslo, jmeno AS Jméno, prijmeni AS Příjmení, COUNT(*) AS Počet_návštěv
 FROM Pacient P
