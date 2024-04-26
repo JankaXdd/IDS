@@ -258,13 +258,46 @@ WHERE rodneCislo NOT IN (
 -- ----------------------------------------------------------
 
 -- Dva triggery
--- Vkládané datum návštěvy je v budoucnosti (návštěva je nejdřív naplánována, potom se uskuteční) [TODO: co faktura? ta tam musí být vždy]
--- Doplnění ID léku do tabulky PredepsanyLek při vložení nového řádku
+    -- Vkládané datum návštěvy je v budoucnosti (návštěva je nejdřív naplánována, potom se uskuteční, pouze již proběhlé návštěvy mohou být v minulosti)
+    CREATE OR REPLACE TRIGGER Datum_návštěvy
+    BEFORE INSERT ON Navsteva
+    FOR EACH ROW
+    BEGIN
+        IF :NEW.datum < SYSDATE THEN
+            RAISE_APPLICATION_ERROR(-1, 'Návštěva nemůže být naplánována v minulosti.');
+        END IF;
+    END;
+    /
+    -- Test vložení datumu v minulosti
+    --SELECT * FROM Navsteva;
+    --    INSERT INTO Navsteva (datum, cas, rodneCislo)
+    --    VALUES (TO_DATE('2024-04-25', 'YYYY-MM-DD'), TO_DATE('14:50:22', 'HH24:MI:SS'), 6202229990) -- Nemělo by projít
+    --SELECT * FROM Navsteva;
+
+
+    -- Doplnění CHYBĚJÍCÍHO ID léku do tabulky PredepsanyLek při vložení nového řádku 
+    --DROP SEQUENCE idLeku_seq;
+    CREATE SEQUENCE idLeku_seq START WITH 4 INCREMENT BY 1;
+    CREATE OR REPLACE TRIGGER Doplnění_ID_léku
+    BEFORE INSERT ON Lek
+    FOR EACH ROW
+    BEGIN
+        IF :NEW.idLeku IS NULL THEN
+            :NEW.idLeku := idLeku_seq.NEXTVAL;
+        END IF;
+    END;
+    /
+    -- Test vložení nového řádku s chybějícím ID léku
+    --SELECT * FROM Lek;
+    --    INSERT INTO Lek (idLeku, typ, davkovani, nazev, ucinnaLatka) 
+    --    VALUES (NULL, 'Sprej', '2 vstřiky do krku 3x denně', 'Flunisolid', 'Flunisolide');
+    --SELECT * FROM Lek;
+    --DELETE FROM Lek WHERE idLeku = 4;
+
 
 -- Dvě uložené procedury
 -- Výpočet věku pacienta podle data narození
 -- Měsíce s nejvyšší návštěvností
-
 
 
 -- EXPLAIN PLAN + INDEX
@@ -279,6 +312,7 @@ WHERE rodneCislo NOT IN (
     SELECT plan_table_output FROM TABLE (DBMS_XPLAN.DISPLAY());
 
     -- Druhá část - dotaz s indexem
+    -- DROP INDEX idx_idLeku;
     CREATE INDEX idx_idLeku ON PredepsanyLek(idLeku);
     EXPLAIN PLAN FOR
         SELECT L.idLeku AS ID_Leku, nazev AS Název_léku, COUNT(*) AS Počet_předepsání
