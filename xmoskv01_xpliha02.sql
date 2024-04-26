@@ -158,7 +158,7 @@ BEGIN
     INSERT INTO Lek (idLeku, typ, davkovani, nazev, ucinnaLatka) 
     VALUES (2, 'Sirup', '25 mg/kg tělesné váhy každých 6-8 hodin, maximálně 60 mg/kg denně', 'Ibuprofen', 'Ibuprofen');
     INSERT INTO Lek (idLeku, typ, davkovani, nazev, ucinnaLatka) 
-    VALUES (13, 'Injekce', '100 mg každých 8 hodin', 'Diclofenac', 'Diclofenac sodium');
+    VALUES (3, 'Injekce', '100 mg každých 8 hodin', 'Diclofenac', 'Diclofenac sodium');
 
     -- Výkony
     INSERT INTO Vykon (idVykonu, nazevVykonu, popis) 
