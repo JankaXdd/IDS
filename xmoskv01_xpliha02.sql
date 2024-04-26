@@ -252,3 +252,46 @@ WHERE rodneCislo NOT IN (
     WHERE typ = 'Preventivní prohlídka' 
         AND EXTRACT(YEAR FROM datum) = 1984
     );
+
+-- ----------------------------------------------------------
+--------------------- Pokročílé objekty ---------------------
+-- ----------------------------------------------------------
+
+-- Dva triggery
+-- Vkládané datum návštěvy je v budoucnosti (návštěva je nejdřív naplánována, potom se uskuteční) [TODO: co faktura? ta tam musí být vždy]
+-- Doplnění ID léku do tabulky PredepsanyLek při vložení nového řádku
+
+-- Dvě uložené procedury
+-- Výpočet věku pacienta podle data narození
+-- Měsíce s nejvyšší návštěvností
+
+
+
+-- EXPLAIN PLAN + INDEX
+
+    -- První část - dotaz bez indexu
+    EXPLAIN PLAN FOR
+        SELECT L.idLeku AS ID_Leku, nazev AS Název_léku, COUNT(*) AS Počet_předepsání
+        FROM Lek L
+        JOIN PredepsanyLek PL ON L.idLeku = PL.idLeku
+        GROUP BY L.idLeku, nazev
+        ORDER BY Počet_předepsání DESC;
+    SELECT plan_table_output FROM TABLE (DBMS_XPLAN.DISPLAY());
+
+    -- Druhá část - dotaz s indexem
+    CREATE INDEX idx_idLeku ON PredepsanyLek(idLeku);
+    EXPLAIN PLAN FOR
+        SELECT L.idLeku AS ID_Leku, nazev AS Název_léku, COUNT(*) AS Počet_předepsání
+        FROM Lek L
+        JOIN PredepsanyLek PL ON L.idLeku = PL.idLeku
+        GROUP BY L.idLeku, nazev
+        ORDER BY Počet_předepsání DESC;
+    SELECT plan_table_output FROM TABLE (DBMS_XPLAN.DISPLAY());
+
+
+-- Přístupová práva
+--GRANT ALL PRIVILEGES TO xmoskv01;
+
+-- Materializovaný pohled
+
+-- SELECT s WITH a CASE
