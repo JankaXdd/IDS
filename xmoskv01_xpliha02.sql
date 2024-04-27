@@ -258,32 +258,53 @@ WHERE rodneCislo NOT IN (
 -- ----------------------------------------------------------
 
 -- Dva triggery
+
     -- Vkládané datum návštěvy je v budoucnosti (návštěva je nejdřív naplánována, potom se uskuteční, pouze již proběhlé návštěvy mohou být v minulosti)
+
+
     CREATE OR REPLACE TRIGGER Datum_návštěvy
     BEFORE INSERT ON Navsteva
     FOR EACH ROW
+    DECLARE
+        datum_a_cas DATE;
     BEGIN
-        IF :NEW.datum < SYSDATE THEN
-            RAISE_APPLICATION_ERROR(-1, 'Návštěva nemůže být naplánována v minulosti.');
+        -- Pro spojení do proměnné typu DATE se převede datum a čas na string, spojí se a následně převede zpět na DATE
+        datum_a_cas := TO_DATE(
+            TO_CHAR(:NEW.datum, 'YYYY-MM-DD') 
+            || ' ' || 
+            TO_CHAR(:NEW.cas, 'HH24:MI:SS'), 
+        'YYYY-MM-DD HH24:MI:SS');
+
+        -- Pokud je datum a čas návštěvy v minulosti, chyba
+        IF datum_a_cas < SYSDATE THEN
+            RAISE_APPLICATION_ERROR(-20000, 'Návštěva nemůže být naplánována v minulosti.');
         END IF;
     END;
     /
     -- Test vložení datumu v minulosti
     --SELECT * FROM Navsteva;
     --    INSERT INTO Navsteva (datum, cas, rodneCislo)
-    --    VALUES (TO_DATE('2024-04-25', 'YYYY-MM-DD'), TO_DATE('14:50:22', 'HH24:MI:SS'), 6202229990) -- Nemělo by projít
+    --    VALUES (TO_DATE('2024-04-25', 'YYYY-MM-DD'), TO_DATE('14:50:22', 'HH24:MI:SS'), 6202229990);
     --SELECT * FROM Navsteva;
 
 
     -- Doplnění CHYBĚJÍCÍHO ID léku do tabulky PredepsanyLek při vložení nového řádku 
-    --DROP SEQUENCE idLeku_seq;
-    CREATE SEQUENCE idLeku_seq START WITH 4 INCREMENT BY 1;
     CREATE OR REPLACE TRIGGER Doplnění_ID_léku
     BEFORE INSERT ON Lek
     FOR EACH ROW
+    DECLARE
+        max_id NUMBER;
     BEGIN
+        -- MAX buď najde nejvyšší ID (nebere v potaz "díry"), nebo bude NULL (=tabulka je prázdná)
+        SELECT MAX(idLeku) INTO max_id FROM Lek;
+
+        -- Pro prázdnou tabulku bude první ID 1, jinak bude o 1 vyšší než maximální ID
         IF :NEW.idLeku IS NULL THEN
-            :NEW.idLeku := idLeku_seq.NEXTVAL;
+            IF max_id IS NULL THEN
+                max_id := 0;
+            END IF;
+
+            :NEW.idLeku := max_id + 1;
         END IF;
     END;
     /
