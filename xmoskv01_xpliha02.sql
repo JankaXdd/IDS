@@ -362,9 +362,38 @@ WHERE rodneCislo NOT IN (
     */
 
 -- Výpočet věku pacienta podle data narození
--- Měsíce s nejvyšší návštěvností
 
+    CREATE OR REPLACE PROCEDURE VypocetVeku(
+        datum_narozeni IN Pacient.datumNarozeni%TYPE,
+        vek OUT NUMBER
+    )
+    IS
+        dnes DATE := SYSDATE;
+        narozen DATE;
+    BEGIN
+        --Získání data narození pacienta ze sloupce tabulky
+        SELECT datumNarozeni INTO narozen
+        FROM Pacient
+        WHERE datumNarozeni = datum_narozeni;
+        -- Výpočet věku pomocí podílu měsíců mezi dnešním datem a datem narození
+        vek := FLOOR(MONTHS_BETWEEN(dnes, datum_narozeni)/12);
+    END;
+    /
 
+    --Test procedury 
+    /*
+    SET SERVEROUTPUT ON;
+    DECLARE
+        vek NUMBER;
+        datum_narozeni DATE;
+    BEGIN
+        datum_narozeni := TO_DATE('1961-07-04', 'YYYY-MM-DD');
+        VypocetVeku(datum_narozeni, vek);
+        DBMS_OUTPUT.PUT_LINE('Vek pacienta: ' || vek);
+    END;
+    /
+    */
+    
 -- EXPLAIN PLAN + INDEX
 
     -- První část - dotaz bez indexu
@@ -389,8 +418,56 @@ WHERE rodneCislo NOT IN (
 
 
 -- Přístupová práva
---GRANT ALL PRIVILEGES TO xmoskv01;
+GRANT ALL ON Pacient TO xmoskv01;
+GRANT ALL ON Navsteva TO xmoskv01;
+GRANT ALL ON Ockovani TO xmoskv01;
+GRANT ALL ON Vysetreni TO xmoskv01;
+GRANT ALL ON Faktura TO xmoskv01;
+GRANT ALL ON Lek TO xmoskv01;
+GRANT ALL ON Vykon TO xmoskv01;
+GRANT ALL ON ProvedenyVykon TO xmoskv01;
+GRANT ALL ON PredepsanyLek TO xmoskv01;
+GRANT ALL ON VypocetVeku TO XMOSKV01;
 
 -- Materializovaný pohled
 
+-- Pohled pro zobrazeni informaci o pacientovi a jeho schuzkach
+    DROP MATERIALIZED VIEW navstevy_pacienta;
+    CREATE MATERIALIZED VIEW navstevy_pacienta
+    BUILD IMMEDIATE
+    REFRESH COMPLETE ON DEMAND
+    AS SELECT p.rodneCislo,
+              p.jmeno,
+              p.prijmeni,
+              n.idNavstevy,
+              n.datum,
+              n.cas
+    FROM Pacient p
+    JOIN Navsteva n ON p.rodneCislo = n.rodneCislo;
+
+    SELECT * FROM navstevy_pacienta;
+
+
+
 -- SELECT s WITH a CASE
+--Vypocita celkovy pocet vysetreni, provedena vysetreni a provedena ockovani pro kazdeho pacienta ktery ma alespon jednu navstevu ordinace
+
+WITH PocetNavstev AS (
+    SELECT p.rodneCislo,
+           COUNT(*) AS celkem_navstev,
+           SUM(CASE WHEN v.idNavstevy IS NOT NULL THEN 1 ELSE 0 END) AS pocet_vysetreni,
+           SUM(CASE WHEN o.idNavstevy IS NOT NULL THEN 1 ELSE 0 END) AS pocet_ockovani
+    FROM Pacient p
+    JOIN Navsteva n ON p.rodneCislo = n.rodneCislo
+    LEFT JOIN Vysetreni v ON n.idNavstevy = v.idNavstevy
+    LEFT JOIN Ockovani o ON n.idNavstevy = o.idNavstevy
+    GROUP BY p.rodneCislo
+)
+SELECT p.jmeno,
+       p.prijmeni,
+       pn.celkem_navstev,
+       pn.pocet_vysetreni,
+       pn.pocet_ockovani
+FROM Pacient p
+JOIN PocetNavstev pn ON p.rodneCislo = pn.rodneCislo;
+
