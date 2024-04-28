@@ -309,14 +309,58 @@ WHERE rodneCislo NOT IN (
     END;
     /
     -- Test vložení nového řádku s chybějícím ID léku
-    --SELECT * FROM Lek;
-    --    INSERT INTO Lek (idLeku, typ, davkovani, nazev, ucinnaLatka) 
-    --    VALUES (NULL, 'Sprej', '2 vstřiky do krku 3x denně', 'Flunisolid', 'Flunisolide');
-    --SELECT * FROM Lek;
-    --DELETE FROM Lek WHERE idLeku = 4;
+    /*
+    SELECT * FROM Lek;
+        INSERT INTO Lek (idLeku, typ, davkovani, nazev, ucinnaLatka) 
+        VALUES (NULL, 'Sprej', '2 vstřiky do krku 3x denně', 'Flunisolid', 'Flunisolide');
+    SELECT * FROM Lek;
+    DELETE FROM Lek WHERE idLeku = 4;
+    */
 
 
--- Dvě uložené procedury
+-- Dvě uložené netriviální procedury (1x kurzor, ošetření vyjímek, table_name.column_name%TYPE nebo table_name%ROWTYPE)
+    -- Měsíce s nejvyšší návštěvností
+    CREATE OR REPLACE PROCEDURE Mesice_s_nejvyssi_navstevnosti
+    IS
+        -- Kurzor pro výběr (seskupení) měsíců a seřazení podle počtu návštěv
+        CURSOR Mesice IS
+            SELECT TO_CHAR(datum, 'MONTH') AS Mesic, COUNT(*) AS Pocet_navstev
+            FROM Navsteva
+            GROUP BY TO_CHAR(datum, 'MONTH')
+            ORDER BY Pocet_navstev DESC;--, Mesic ASC;
+
+        -- Proměnné pro uložení hodnot z kurzoru
+        Mesic VARCHAR2(9);
+        Pocet_navstev INT;
+    BEGIN
+        -- Otevření a první načtení řádku z kurzoru (kvůli podmínce WHILE loopu se musí načíst první řádek mimo loop)
+        OPEN Mesice;
+        FETCH Mesice INTO Mesic, Pocet_navstev;
+
+        DBMS_OUTPUT.PUT_LINE('Měsíce s nejvyšší návštěvností:');
+
+        WHILE Mesice%FOUND LOOP
+            DBMS_OUTPUT.PUT_LINE('Měsíc: ' || Mesic || ', Počet návštěv: ' || Pocet_navstev);
+            FETCH Mesice INTO Mesic, Pocet_navstev;
+        END LOOP;
+
+        CLOSE Mesice;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Nebyly nalezeny žádné návštěvy.');
+    END;
+    /
+    -- Test procedury
+    /*
+    SET SERVEROUTPUT ON;
+    BEGIN
+        Mesice_s_nejvyssi_navstevnosti;
+    END;
+    /
+    SELECT * FROM Navsteva;
+    */
+
 -- Výpočet věku pacienta podle data narození
 -- Měsíce s nejvyšší návštěvností
 
