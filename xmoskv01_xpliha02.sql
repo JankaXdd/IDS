@@ -430,7 +430,7 @@ WHERE rodneCislo NOT IN (
 
 
 -- Materializovaný pohled
--- Pohled pro zobrazeni informaci o pacientovi a jeho schuzkach
+    -- Pohled pro zobrazeni informaci o pacientovi a jeho schuzkach
     DROP MATERIALIZED VIEW navstevy_pacienta;
     CREATE MATERIALIZED VIEW navstevy_pacienta
     BUILD IMMEDIATE
@@ -443,28 +443,36 @@ WHERE rodneCislo NOT IN (
               n.cas
     FROM Pacient p
     JOIN Navsteva n ON p.rodneCislo = n.rodneCislo;
-
+    -- Test
+    /*
     SELECT * FROM navstevy_pacienta;
-
+    UPDATE Pacient SET prijmeni = 'Škopková' WHERE rodneCislo = 6202229990;
+    SELECT * FROM navstevy_pacienta;
+    BEGIN
+        DBMS_MVIEW.REFRESH('navstevy_pacienta');
+    END;
+    /
+    SELECT * FROM navstevy_pacienta;
+    */
 
 -- SELECT s WITH a CASE
---Vypocita celkovy pocet vysetreni, provedena vysetreni a provedena ockovani pro kazdeho pacienta ktery ma alespon jednu navstevu ordinace
-WITH PocetNavstev AS (
-    SELECT p.rodneCislo,
-           COUNT(*) AS celkem_navstev,
-           SUM(CASE WHEN v.idNavstevy IS NOT NULL THEN 1 ELSE 0 END) AS pocet_vysetreni,
-           SUM(CASE WHEN o.idNavstevy IS NOT NULL THEN 1 ELSE 0 END) AS pocet_ockovani
+    --Vypocita celkovy pocet vysetreni, provedena vysetreni a provedena ockovani pro kazdeho pacienta ktery ma alespon jednu navstevu ordinace
+    WITH PocetNavstev AS (
+        SELECT p.rodneCislo,
+            COUNT(*) AS celkem_navstev,
+            SUM(CASE WHEN v.idNavstevy IS NOT NULL THEN 1 ELSE 0 END) AS pocet_vysetreni,
+            SUM(CASE WHEN o.idNavstevy IS NOT NULL THEN 1 ELSE 0 END) AS pocet_ockovani
+        FROM Pacient p
+        JOIN Navsteva n ON p.rodneCislo = n.rodneCislo
+        LEFT JOIN Vysetreni v ON n.idNavstevy = v.idNavstevy
+        LEFT JOIN Ockovani o ON n.idNavstevy = o.idNavstevy
+        GROUP BY p.rodneCislo
+    )
+    SELECT p.jmeno,
+        p.prijmeni,
+        pn.celkem_navstev,
+        pn.pocet_vysetreni,
+        pn.pocet_ockovani
     FROM Pacient p
-    JOIN Navsteva n ON p.rodneCislo = n.rodneCislo
-    LEFT JOIN Vysetreni v ON n.idNavstevy = v.idNavstevy
-    LEFT JOIN Ockovani o ON n.idNavstevy = o.idNavstevy
-    GROUP BY p.rodneCislo
-)
-SELECT p.jmeno,
-       p.prijmeni,
-       pn.celkem_navstev,
-       pn.pocet_vysetreni,
-       pn.pocet_ockovani
-FROM Pacient p
-JOIN PocetNavstev pn ON p.rodneCislo = pn.rodneCislo;
+    JOIN PocetNavstev pn ON p.rodneCislo = pn.rodneCislo;
 
