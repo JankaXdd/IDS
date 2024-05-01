@@ -1,0 +1,38 @@
+---------------------------------------------- CREATE INDEX komentář ---------------------------------------------- 
+    CREATE INDEX idx_idLeku ON PredepsanyLek(idLeku);
+        SELECT L.idLeku AS ID_Leku, nazev AS Název_léku, COUNT(*) AS Počet_předepsání
+        FROM Lek L
+        JOIN PredepsanyLek PL ON L.idLeku = PL.idLeku
+        GROUP BY L.idLeku, nazev
+        ORDER BY Počet_předepsání DESC;
+
+-------------------------------------------------------------------------------------------------
+| Id  | Operation                      | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+-------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT               |                |     2 |    54 |     5  (40)| 00:00:01 |
+|   1 |  SORT ORDER BY                 |                |     2 |    54 |     5  (40)| 00:00:01 |
+|   2 |   HASH GROUP BY                |                |     2 |    54 |     5  (40)| 00:00:01 |
+|   3 |    NESTED LOOPS                |                |     2 |    54 |     3   (0)| 00:00:01 |
+|   4 |     NESTED LOOPS               |                |     2 |    54 |     3   (0)| 00:00:01 |
+
+------------------------------------------------------------------------------------
+| Id  | Operation             | Name       | Rows  | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT      |            |     2 |    60 |     4  (25)| 00:00:01 |
+|   1 |  SORT ORDER BY        |            |     2 |    60 |     4  (25)| 00:00:01 |
+|   2 |   HASH GROUP BY       |            |     2 |    60 |     4  (25)| 00:00:01 |
+|   3 |    NESTED LOOPS       |            |     2 |    60 |     3   (0)| 00:00:01 |
+|   4 |     VIEW              | VW_GBF_7   |     3 |    81 |     3   (0)| 00:00:01 |
+
+
+Použitím indexu pro dotaz:
+
+Došlo k optimalizaci vyhledávání řádků díky indexu idx_idLeku, který zrychlí(zefektivní) spojení příkazem JOIN 
+	[nemusí se procházet celá tabulka Lek pro hledání shodných řádků, pravděpodobně použití B+ stromu].
+Také došlo k optimalizaci GROUP BY, která se doplnila o interní pohled (VIEW) 
+	[můžou se přeskupit operace například pro dřívější provedení, rychlejší seskupení díky indexu, mezivýsledky
+	jsou díky VIEW uloženy].
+
+Další možnosti optimalizace:
+	* (pokud by byl dotaz častý) vytvoření materializovaného pohledu
+
